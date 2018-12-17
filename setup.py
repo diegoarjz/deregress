@@ -8,9 +8,9 @@ setuptools.setup(
     version="0.0.1",
     author="Diego Jesus",
     author_email="diego.a.r.jz@gmail.com",
-    description="Regression testing external programs.",
+    description="A lightweight regression testing system.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="to_be_defined",
+    url="https://github.com/diegoarjz/deregress.git",
     packages=setuptools.find_packages()
 )
