@@ -24,9 +24,9 @@ The runner object allows to run the executable under test with specific command 
 verifies whether certain conditions have been met. The results of these conditions can be saved into a file which is
 later used to check for regressions.
 
-For example, the next file runs the executable in ``path/to/executable``` with the ```--out-file=file.txt``` argument,
+For example, the next file runs the executable in `path/to/executable` with the `--out-file=file.txt` argument,
 indicating that the file.txt will be created. Then, two tests are made on the results. The first tests whether
-```file.txt``` exists and the second checks if the file md5 hash has changed from a previous run.
+`file.txt` exists and the second checks if the file md5 hash has changed from a previous run.
 
 ```python
 import deregress
