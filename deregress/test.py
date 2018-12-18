@@ -1,13 +1,15 @@
 import sys
 import os
+import shutil
 
 from deregress.runner import Runner
 from deregress.tester import Tester
 from deregress.test_result import Result
-from deregress.results_storage import ResultWriter, ResultReader
+from deregress.results_storage import ResultWriter, ResultReader, FileStorage
 
 class TestsManager:
     managed_tests = []
+    deregress_filename = "dregress.json"
 
     @staticmethod
     def add_managed_test(test):
@@ -22,23 +24,63 @@ class TestsManager:
     def __init__(self):
         self._previous_test_results = None
         self._tests_to_run = TestsManager.get_managed_tests()
+        self._make_reference = False
+        self._deregress_dir = ".deregress"
+
+    @property
+    def make_reference(self):
+        return self._make_reference
+
+    @make_reference.setter
+    def make_reference(self, value):
+        self._make_reference = value
+
+    @property
+    def deregress_dir(self):
+        return self._deregress_dir
+
+    @deregress_dir.setter
+    def deregress_dir(self, value):
+        self._deregress_dir = value
+
+    @property
+    def deregress_file(self):
+        return os.path.abspath(os.path.join(self._deregress_dir, TestsManager.deregress_filename))
+
+
+    def initialize_deregress_dir(self, clean=False):
+        if not os.path.exists(self.deregress_dir):
+            os.mkdir(self.deregress_dir)
+            return
+
+        if clean:
+            shutil.rmtree(self.deregress_dir)
+            os.mkdir(self.deregress_dir)
 
 
     def load_previous_test_results(self):
-        if os.path.exists("deregress.json"):
+        if os.path.exists(self.deregress_file):
             result_reader = ResultReader()
-            result_reader.read("deregress.json")
+            result_reader.read(self.deregress_file)
             self._previous_test_results = result_reader.test_results
 
 
     def run_tests(self):
         single_test_count = 0
+        file_storage = FileStorage(self.deregress_dir)
+        result_writer = ResultWriter()
+
         for test in self._tests_to_run:
             test.tester.previous_test_results = self._previous_test_results
+            test.tester.file_storage = file_storage
+            test.tester.make_reference = self.make_reference
+
             results = test()
-            single_test_count += len(results)
 
             for r in results:
+                result_writer.add_test_result(r)
+                single_test_count += 1
+
                 if r.test_result == Result.Success:
                     sys.stdout.write(".")
                 elif r.test_result == Result.Fail:
@@ -48,18 +90,16 @@ class TestsManager:
                 elif r.test_result == Result.New:
                     sys.stdout.write("N")
 
+                if single_test_count % 40 == 0:
+                    sys.stdout.write("\n")
+
+        if self.make_reference:
+            result_writer.write(self.deregress_file)
+
         sys.stdout.write("\n")
 
         print("-"*70)
         print("Ran {} tests".format(single_test_count))
-
-    def make_reference(self):
-        result_writer = ResultWriter()
-        for test in self._tests_to_run:
-            results = test.results
-            for result in results:
-                result_writer.add_test_result(result)
-        result_writer.write("deregress.json")
 
 
 class TestWrapper:

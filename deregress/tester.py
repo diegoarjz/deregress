@@ -1,20 +1,9 @@
 import os
-import hashlib
 import inspect
 import filecmp
 
 from deregress.test_result import *
-
-def md5Checksum(filePath):
-    with open(filePath, 'rb') as fh:
-        m = hashlib.md5()
-        while True:
-            data = fh.read(8192)
-            if not data:
-                break
-            m.update(data)
-        return m.hexdigest()
-
+from deregress.file_tools import md5Checksum
 
 def test_assertion(func):
     def wrapper(*args, **kwargs):
@@ -60,6 +49,8 @@ class Tester:
         self._test_results = []
         self._previous_test_results = None
         self._result_for_current_test = None
+        self._file_storage = None
+        self._make_reference = False
 
 
     @property
@@ -74,24 +65,49 @@ class Tester:
     def previous_test_results(self, value):
         self._previous_test_results = value
 
+    @property
+    def file_storage(self):
+        return self._file_storage
+
+    @file_storage.setter
+    def file_storage(self, value):
+        self._file_storage = value
+
+    @property
+    def make_reference(self):
+        return self._make_reference
+
+    @make_reference.setter
+    def make_reference(self, value):
+        self._make_reference = value
+
+
+
     @test_assertion
     def file_should_exist(self, file_path):
         file_exists = os.path.exists(file_path)
         return Result.Success if file_exists else Result.Fail, file_exists
+
 
     @test_assertion
     def file_contents_should_match(self, file_path):
         if not os.path.exists(file_path):
             return Result.Error, None
 
+        test_result = None
         if self._result_for_current_test is not None:
             prev_file_path = self._result_for_current_test.result_value
             if filecmp.cmp(prev_file_path, file_path):
-                return Result.Success, file_path
+                test_result = Result.Success
             else:
-                return Result.Fail, file_path
+                test_result = Result.Fail
         else:
-            return Result.New, file_path
+            test_result = Result.New
+
+        stored_file = None
+        if self.make_reference:
+            stored_file = self._file_storage.store_file(file_path)
+        return test_result, stored_file
 
 
     @test_assertion

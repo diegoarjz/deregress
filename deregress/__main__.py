@@ -10,6 +10,8 @@ def _command_line_args():
     parser.add_argument("--run", help="Run specified files")
     parser.add_argument("--make-reference", action="store_true",
             help="Marks the results of the run as the next reference")
+    parser.add_argument("--clean-references", action="store_true",
+            help="Deletes all previous references before running the tests")
 
     return parser
 
@@ -23,10 +25,10 @@ def main():
 
     test_manager = TestsManager()
 
+    test_manager.initialize_deregress_dir(clean=args.clean_references)
+    test_manager.make_reference = args.make_reference
     test_manager.load_previous_test_results()
     test_manager.run_tests()
-    if args.make_reference:
-        test_manager.make_reference()
 
 if __name__ == '__main__':
     main()

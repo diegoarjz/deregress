@@ -1,7 +1,9 @@
 import json
 import os
+import shutil
 
 from deregress.test_result import *
+from deregress.file_tools import md5Checksum
 
 class TestResultEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -62,3 +64,36 @@ class ResultReader:
 
         for r in read_results:
             self._test_results[r.name] = r
+
+
+class FileStorage:
+    def __init__(self, deregress_dir):
+        self._file_storage_dir = os.path.abspath(os.path.join(deregress_dir, "files"))
+
+        if not os.path.exists(self._file_storage_dir):
+            os.mkdir(self._file_storage_dir)
+
+    @property
+    def file_storage_dir(self):
+        return self._file_storage_dir
+
+    def store_file(self, path_to_file):
+        file_hash = md5Checksum(path_to_file)
+        file_ext = os.path.splitext(path_to_file)[1]
+        hashed_file_name = file_hash + file_ext
+
+        if self.file_exists_in_storage(hashed_file_name):
+            # no need to copy if the file already exists
+            return
+
+        file_dest = self._destination_path_for_file(hashed_file_name)
+        shutil.copyfile(path_to_file, file_dest)
+
+        return file_dest
+
+    def file_exists_in_storage(self, hashed_file_name):
+        return os.path.exists(self._destination_path_for_file(hashed_file_name))
+
+    def _destination_path_for_file(self, hashed_file_name):
+        return os.path.join(self._file_storage_dir, hashed_file_name)
+
