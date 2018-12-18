@@ -1,6 +1,7 @@
 import os
 import hashlib
 import inspect
+import filecmp
 
 from deregress.test_result import *
 
@@ -13,6 +14,7 @@ def md5Checksum(filePath):
                 break
             m.update(data)
         return m.hexdigest()
+
 
 def test_assertion(func):
     def wrapper(*args, **kwargs):
@@ -79,7 +81,18 @@ class Tester:
 
     @test_assertion
     def file_contents_should_match(self, file_path):
-        print("file_contents_should_match", file_path)
+        if not os.path.exists(file_path):
+            return Result.Error, None
+
+        if self._result_for_current_test is not None:
+            prev_file_path = self._result_for_current_test.result_value
+            if filecmp.cmp(prev_file_path, file_path):
+                return Result.Success, file_path
+            else:
+                return Result.Fail, file_path
+        else:
+            return Result.New, file_path
+
 
     @test_assertion
     def file_hash_should_match(self, file_path):
